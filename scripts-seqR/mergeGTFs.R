@@ -96,11 +96,12 @@ idx <- grep("\\-\\-file=", args, perl=TRUE)
 script.name <- gsub("\\-\\-file=","",args[idx])
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Retrieve command line arguments... ", "\n", sep=""))
   
-usage <- paste("\n#############\nusage: Rscript ", script.name, " --mode <", MODE_NO_OV_TRANSCRIPT,"> --inputA <file> --inputB <file> --outputGTF <file> --outputSQLite <file> [--prefixA <string>|--prefixB <string>]\n\n",
+usage <- paste("\n#############\nusage: Rscript ", script.name, " --inputA <file> --inputB <file> --outputGTF <file> --outputSQLite <file> --prefixA <string> --prefixB <string> [--mode <", MODE_NO_OV_TRANSCRIPT,">]\n\n",
                "Rscript merging two GTF files according to a selected mode. Currently only mode \'", MODE_NO_OV_TRANSCRIPT,"\' is implemented,\n",
                "such that assembly in file A is extended by all novel transcripts in file B which do NOT overlap any novel transcript in file A.\n",
                "The overlap of entries in B with entries in A is calculated based on transcript annotation only.\n",
-               "Final assembly is written to a GTF file. A user defined prefix is added to novel gene and transcript identifiers (\'XLOC\' and \'TCONS\').\n\n",
+               "Final assembly is written to a GTF file. A user defined prefix is added to novel gene and transcript identifiers. Currently only cufflinks\n",
+	       "identifiers are supported to detect novel transcripts in A and B (\'XLOC\' and \'TCONS\').\n\n",
                "--mode <no_transcript_overlap>\tMode of invocation, currently all those novel transcripts in file B overlapping transcripts in file A are discarded.\n",
                "--inputA <file>\t\t\tGTF input file A\n",
                "--inputB <file>\t\t\tGTF input file B\n",
@@ -111,7 +112,7 @@ usage <- paste("\n#############\nusage: Rscript ", script.name, " --mode <", MOD
                "Author: Kristin Reiche\n#############\n",
                sep="")
 
-ARG.mode <- NULL
+ARG.mode <- MODE_NO_OV_TRANSCRIPT
 ARG.inputA <- NULL
 ARG.inputB <- NULL
 ARG.output <- NULL
@@ -163,7 +164,6 @@ cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]",
       "\n\tARG.output=",ARG.output,
       "\n", sep=""))
 
-
 ############################################
 # The script
 ############################################
@@ -185,7 +185,7 @@ list.pattern <- list(pattern.all = ".+transcript_id\\s+(\\S+)\\;.+",
                      pattern.geneID.novel = "gene_id\\s+(XLOC\\S+)\\;",
                      pattern.geneID.known = "gene_id\\s+(ENS\\S+)\\;"
                      )
-list.pattern.novelIDs <- list(txID="transcript_id\\s+TCONS\\S+\\;")
+list.pattern.novelIDs <- list(txID="TCONS\\S+")
 
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Read GTF file A as a data frame... ", "\n", sep=""))
 gtf.A <- read.delim(ARG.inputA, header=FALSE, stringsAsFactors=FALSE, comment.char = "#")
@@ -203,7 +203,6 @@ gtf.B.new <- .my.checkAndReplaceMetadata(x=gtf.B, prefix=ARG.prefixB, list.patte
 if(nrow(gtf.B) != nrow(gtf.B.new)){ stop(paste("Something went wrong while checking metadata column for file B!\n", sep=""))   }
 gtf.B <- gtf.B.new
 rm(gtf.B.new)
-
 
 #########################
 # Calculate overlap of transcripts 
@@ -250,11 +249,10 @@ if(ARG.mode == MODE_NO_OV_TRANSCRIPT){
 #########################
 # Save GTF file
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Save transcript database as GTF file... ", "\n", sep=""))
-if(is.null(gtf.final)){
+if(is.null(gtf.final) || length(gtf.final)==0){
   stop(paste("Final data frame is empty!\n", sep="")) 
 }
 write.table(gtf.final, file=ARG.output, append=FALSE, quote=FALSE, sep="\t", dec = ".", row.names=FALSE, col.names=FALSE)
-
 
 
 #########################
@@ -263,6 +261,7 @@ if(length(warnings())>0){
         cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Warnings:\n", sep=""))
         warnings() 
 }
+sessionInfo()
 quit(save="no", status=0)
   
 

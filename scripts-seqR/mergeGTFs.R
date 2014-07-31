@@ -170,9 +170,6 @@ cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]",
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Load R libraries... ", "\n", sep=""))
 suppressPackageStartupMessages(library("GenomicFeatures"))
 
-# ARG.inputA="/data/bioinf/projects/code/tcell/tcell-retro/2013-11/Transcriptome/rnaseq-pipeline/out/segemehl_assembly2_Gencodev19_merge_gencode_novel_workaround-1d92/magic-full.gtf"
-# ARG.inputB="/data/bioinf/projects/code/tcell/tcell-retro/2013-11/Transcriptome/rnaseq-pipeline/out/tophat2_assembly2_Gencodev19_merge_gencode_novel_workaround-1d92/magic-full.gtf"
-
 #########################
 # Create transcript database according to GTF file
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Call \'makeTranscriptDbFromGFF\' for input file A... ", "\n", sep=""))

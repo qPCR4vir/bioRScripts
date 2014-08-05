@@ -188,7 +188,7 @@ if(mode==2){  # read SQL file if specified
   txdb <- makeTranscriptDbFromGFF(file=ARG.gtf, format="gtf", species=LIST.SPECIES[[ARG.species]]$name)
   sqliteDBFileName <- paste(ARG.gtf,"sqlite",sep=".")
   saveDb(txdb, sqliteDBFileName)
-  cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Sslite transcript database saved in \'", sqliteDBFileName,"\'... ", "\n", sep=""))
+  cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Sqlite transcript database saved in \'", sqliteDBFileName,"\'... ", "\n", sep=""))
 }
 
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Change TRANSCRIPT_NAME into ENSTxxxxx.x::ENSGxxxxx.x... ", "\n", sep=""))
@@ -214,6 +214,12 @@ if(!is.null(ARG.bed)){
 
   txdb <- makeTranscriptDb(trans,splice);
 }
+
+### Get genome
+cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Get genome... ", "\n", sep=""))
+require(LIST.SPECIES[[ARG.species]]$BSgenome, character.only=TRUE)
+genome <- eval(parse(text = LIST.SPECIES[[ARG.species]]$BSgenome)); #string into variable name
+genome.chr.length <- seqlengths(genome)
 
 ### Flanking regions upstream and/or downstream?
 if(!is.null(ARG.fivePrimeFlank) || !is.null(ARG.threePrimeFlank)){
@@ -272,6 +278,34 @@ if(!is.null(ARG.fivePrimeFlank) || !is.null(ARG.threePrimeFlank)){
                                "tx_end" = end(transcripts),
                                stringsAsFactors=FALSE
                                )
+
+  # Ensure that flanking regions are within chromosome ranges
+  cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Check if flanking regions are in range of chromosome length... ", "\n", sep=""))
+  idx <- which(transcripts.df$tx_start < 0)
+  if(length(idx)>0){
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " transcript(s) had start sites out of range - set to 0... ", "\n", sep=""))
+    transcripts.df[idx,]$tx_start <- 0
+  }
+  idx <- which(exons.df$exon_start < 0)
+  if(length(idx)>0){
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " exon(s) had start sites out of range - set to 0... ", "\n", sep=""))
+    exons.df[idx,]$exon_start <- 0
+  }
+  
+  idx <- which(transcripts.df$tx_end > genome.chr.length[transcripts.df$tx_chrom])
+  if(length(idx)>0){
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " transcript(s) had end sites out of range - set to maximal chromosome length... ", "\n", sep=""))
+    transcripts.df[idx,]$tx_end <- genome.chr.length[transcripts.df[idx,]$tx_chrom]
+  }
+  
+  vec.txID2txEnd <- transcripts.df$tx_end
+  names(vec.txID2txEnd) <- transcripts.df$tx_id
+  idx <- which(exons.df$exon_end > vec.txID2txEnd[exons.df$tx_id])
+  if(length(idx)>0){
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " exon(s) had end sites out of range - set to maximal end of transcript... ", "\n", sep=""))
+    exons.df[idx,]$exon_end <- vec.txID2txEnd[exons.df[idx,]$tx_id]
+  }
+  cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " ok... ", "\n", sep=""))
   
   txdb <- makeTranscriptDb(transcripts=transcripts.df, splicings=exons.df)
 
@@ -279,8 +313,6 @@ if(!is.null(ARG.fivePrimeFlank) || !is.null(ARG.threePrimeFlank)){
 
 ### Get FASTA
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Extract sequences... ", "\n", sep=""))
-require(LIST.SPECIES[[ARG.species]]$BSgenome, character.only=TRUE)
-genome <- eval(parse(text = LIST.SPECIES[[ARG.species]]$BSgenome)); #string into variable name
 tx_seqs <- extractTranscriptsFromGenome(genome, txdb, use.names=TRUE);
 
 ### Export
@@ -291,7 +323,6 @@ if(is.null(ARG.fasta)){
   ARG.fasta <- paste(paste(myName,"_transcripts",sep=""), "fa", sep=".");
 }
 export(tx_seqs, ARG.fasta, format="fasta");
-
 
 cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " ALL DONE\n", sep=""))
 if(length(warnings())>0){ 

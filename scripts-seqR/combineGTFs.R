@@ -102,7 +102,7 @@ usage <- paste("\n#############\nusage: Rscript ", script.name, " --inputA <file
                "The overlap of entries in B with entries in A is calculated based on transcript annotation only.\n",
                "Final assembly is written to a GTF file. A user defined prefix is added to novel gene and transcript identifiers. Currently only cufflinks\n",
 	       "identifiers are supported to detect novel transcripts in A and B (\'XLOC\' and \'TCONS\').\n\n",
-               "--mode <no_transcript_overlap>\tMode of invocation, currently all those novel transcripts in file B overlapping transcripts in file A are discarded.\n",
+               "--mode <no_transcript_overlap>\tMode of invocation, currently all those novel transcripts in file B are added to assembly which do NOT overlap novel transcripts in file A.\n",
                "--inputA <file>\t\t\tGTF input file A\n",
                "--inputB <file>\t\t\tGTF input file B\n",
                "--output <file>\t\t\tGTF output file\n",

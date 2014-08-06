@@ -283,13 +283,16 @@ if(!is.null(ARG.fivePrimeFlank) || !is.null(ARG.threePrimeFlank)){
   cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " Check if flanking regions are in range of chromosome length... ", "\n", sep=""))
   idx <- which(transcripts.df$tx_start < 0)
   if(length(idx)>0){
-    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " transcript(s) had start sites out of range - set to 0... ", "\n", sep=""))
-    transcripts.df[idx,]$tx_start <- 0
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " transcript(s) had start sites out of range - set to 1... ", "\n", sep=""))
+    transcripts.df[idx,]$tx_start <- 1
   }
-  idx <- which(exons.df$exon_start < 0)
+
+  vec.txID2txStart <- transcripts.df$tx_start
+  names(vec.txID2txStart) <- transcripts.df$tx_id
+  idx <- which(exons.df$exon_start < vec.txID2txStart[as.character(exons.df$tx_id)])
   if(length(idx)>0){
-    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " exon(s) had start sites out of range - set to 0... ", "\n", sep=""))
-    exons.df[idx,]$exon_start <- 0
+    cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " exon(s) had start sites out of range - set to minimal start of transcript... ", "\n", sep=""))
+    exons.df[idx,]$exon_start <- vec.txID2txStart[as.character(exons.df[idx,]$tx_id)]
   }
   
   idx <- which(transcripts.df$tx_end > genome.chr.length[transcripts.df$tx_chrom])
@@ -300,13 +303,13 @@ if(!is.null(ARG.fivePrimeFlank) || !is.null(ARG.threePrimeFlank)){
   
   vec.txID2txEnd <- transcripts.df$tx_end
   names(vec.txID2txEnd) <- transcripts.df$tx_id
-  idx <- which(exons.df$exon_end > vec.txID2txEnd[exons.df$tx_id])
+  idx <- which(exons.df$exon_end > vec.txID2txEnd[as.character(exons.df$tx_id)])
   if(length(idx)>0){
     cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"] ", length(idx), " exon(s) had end sites out of range - set to maximal end of transcript... ", "\n", sep=""))
-    exons.df[idx,]$exon_end <- vec.txID2txEnd[exons.df[idx,]$tx_id]
+    exons.df[idx,]$exon_end <- vec.txID2txEnd[as.character(exons.df[idx,]$tx_id)]
   }
   cat(file=stderr(), paste("[", script.name,"][",Sys.time(),"]", " ok... ", "\n", sep=""))
-  
+
   txdb <- makeTranscriptDb(transcripts=transcripts.df, splicings=exons.df)
 
 }
